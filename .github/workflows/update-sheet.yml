@@ -1,0 +1,49 @@
+name: Update Google Sheet Data
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Runs daily at 8:17 AM Malaysia time
+    - cron: "17 0 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update-sheet:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Create data folder
+        run: mkdir -p public/data
+
+      - name: Download Google Sheet as CSV
+        run: |
+          curl --fail --location \
+          "https://docs.google.com/spreadsheets/d/1ZxKmfWYRTdLYbJj4CkyGtkgUwQt6IgkNGDdOb6Eyi_E/gviz/tq?tqx=out:csv&sheet=YOUR_SHEET_NAME" \
+          --output public/data/sheet.csv
+
+      - name: Check downloaded file
+        run: |
+          if [ ! -s public/data/sheet.csv ]; then
+            echo "Downloaded CSV is empty."
+            exit 1
+          fi
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/sheet.csv
+
+          if git diff --cached --quiet; then
+            echo "No changes found."
+          else
+            git commit -m "Update Google Sheet data"
+            git push
+          fi
